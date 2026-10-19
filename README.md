@@ -20,3 +20,6 @@ This is a mono-repo for all the code we will work with and create during the cla
 
 The instructor will give you instructions on using the classroom-sync extension. Make sure you follow that part, even if you don't think you'll need it.
 
+## Is Classroom Sync Configured
+
+- this is the IP: 172.30.176.1
