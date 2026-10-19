@@ -72,6 +72,9 @@ export class Without {
       queryParamsHandling: 'merge',
     });
   }
+  // httpResource is "read only" and the primary tool for getting outside API data.
+  // really. I mean it. Don't use rxjs if you just need a list of things.
+  // spoiler: it *is* using rxjs, but hides it.
   productsResource = httpResource<Product[]>(() => {
     const maxPrice = this.maxPrice();
     return {
