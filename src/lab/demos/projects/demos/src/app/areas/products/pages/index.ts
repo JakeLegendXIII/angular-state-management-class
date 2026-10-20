@@ -1,12 +1,14 @@
-import { CurrencyPipe } from '@angular/common';
+import { CurrencyPipe, JsonPipe } from '@angular/common';
 import { httpResource } from '@angular/common/http';
-import { Component, computed, input, signal } from '@angular/core';
+import { Component, computed, effect, input, signal } from '@angular/core';
 import { RouterLinkWithHref, RouterOutlet } from '@angular/router';
-import { ProductModel } from '../types';
+import { ProductModel, productSummaryItemListSchema } from '../types';
+import { injectDispatch } from '@ngrx/signals/events';
+import { httpErrorEvents } from '../../shared/error-handling/events';
 
 @Component({
   selector: 'app-products-index',
-  imports: [CurrencyPipe, RouterOutlet, RouterLinkWithHref],
+  imports: [CurrencyPipe, RouterOutlet, RouterLinkWithHref, JsonPipe],
   template: `
     <p>Products Index Page</p>
     <div class="join">
@@ -16,10 +18,12 @@ import { ProductModel } from '../types';
         <a [routerLink]="['.', { sortKey: 'price' }]" class="join-item btn"> Sort by Price </a>
       }
     </div>
-    @if (productsResource.isLoading()) {
-      <p>Getting your products...</p>
-      <span class="loading loading-lg loading-ball"></span>
-    }
+    <div class="flex h-12">
+      @if (productsResource.isLoading()) {
+        <p>Getting your products...</p>
+        <span class="loading loading-lg loading-ball"></span>
+      }
+    </div>
     @if (productsResource.hasValue()) {
       <div class="flex flex-row gap-4">
         <div class="overflow-x-auto">
@@ -61,12 +65,42 @@ import { ProductModel } from '../types';
 
     @if (productsResource.error()) {
       <p>Blammo</p>
+      <pre> {{ productsResource.error() | json }} </pre>
     }
   `,
   styles: ``,
 })
 export class Index {
-  private readonly productsResource = httpResource<ProductModel[]>(() => '/api/products');
+  private readonly httpEvents = injectDispatch(httpErrorEvents);
+  private name: string = 'joe';
+
+  constructor() {
+    effect((cleanupFn) => {
+      const sortingBy = this.sortKey();
+      console.log('Changed sorting to...' + sortingBy);
+      const timerId = setInterval(() => {
+        //this.productsResource.reload();
+      }, 3000);
+      cleanupFn(() => clearInterval(timerId));
+    });
+  }
+
+  private readonly productsResource = httpResource<ProductModel[]>(() => '/api/products', {
+    parse: (val) => {
+      const parseResults = productSummaryItemListSchema.safeParse(val);
+      if (parseResults.success) {
+        return parseResults.data;
+      } else {
+        this.httpEvents.malformedData({
+          message: 'Cannot get the product list',
+          zodError: parseResults.error,
+          featureName: 'products',
+        });
+        // dispatch an action
+        throw new Error('Malformed Data');
+      }
+    },
+  });
   // list = input<HttpResourceRef<ProductModel[]>>();
   sortKey = input<'price' | 'name'>('name');
   sortedProducts = computed(() => {
