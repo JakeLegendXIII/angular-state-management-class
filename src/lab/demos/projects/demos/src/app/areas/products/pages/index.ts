@@ -1,8 +1,7 @@
 import { CurrencyPipe } from '@angular/common';
-import { Component, computed, input, Resource, signal } from '@angular/core';
-import { RouterLinkWithHref, RouterOutlet } from '@angular/router';
-import { Product } from '../../../../mocks/data/products';
 import { httpResource } from '@angular/common/http';
+import { Component, computed, signal } from '@angular/core';
+import { RouterLinkWithHref, RouterOutlet } from '@angular/router';
 import { ProductModel } from '../types';
 
 @Component({
@@ -77,7 +76,7 @@ import { ProductModel } from '../types';
 })
 export class Index {
   private readonly productsResource = httpResource<ProductModel[]>(() => '/api/products');
-
+  // list = input<HttpResourceRef<ProductModel[]>>();
   private readonly sortKey = signal<'price' | 'name'>('name');
   sortedProducts = computed(() => {
     const list = this.productsResource.value() ?? [];
