@@ -1,22 +1,23 @@
 import { CurrencyPipe } from '@angular/common';
+import { Component, input, Resource } from '@angular/core';
+import { RouterLinkWithHref, RouterOutlet } from '@angular/router';
+import { Product } from '../../../../mocks/data/products';
 import { httpResource } from '@angular/common/http';
-import { Component } from '@angular/core';
-import { ResourceDisplay } from '../../shared/resource-display';
 import { ProductModel } from '../types';
-import { ResourceErrorDisplay } from '../../shared/error-display';
-import { RouterOutlet, RouterLinkWithHref } from '@angular/router';
 
 @Component({
   selector: 'app-products-index',
-  imports: [ResourceDisplay, CurrencyPipe, ResourceErrorDisplay, RouterOutlet, RouterLinkWithHref],
+  imports: [CurrencyPipe, RouterOutlet, RouterLinkWithHref],
   template: `
     <p>Products Index Page</p>
-    <p>{{ productsResource.error() }}</p>
-    <app-shared-resource-display [resource]="productsResource">
+    @if (productsResource.isLoading()) {
+      <p>Getting your products...</p>
+      <span class="loading loading-lg loading-ball"></span>
+    }
+    @if (productsResource.hasValue()) {
       <div class="flex flex-row gap-4">
         <div class="overflow-x-auto">
           <table class="table">
-            <!-- head -->
             <thead>
               <tr>
                 <th></th>
@@ -50,10 +51,11 @@ import { RouterOutlet, RouterLinkWithHref } from '@angular/router';
           <router-outlet />
         </div>
       </div>
-      <app-shared-resource-error-display>
-        <p>Bummer! No Product List for you!</p>
-      </app-shared-resource-error-display>
-    </app-shared-resource-display>
+    }
+
+    @if (productsResource.error()) {
+      <p>Blammo</p>
+    }
   `,
   styles: ``,
 })

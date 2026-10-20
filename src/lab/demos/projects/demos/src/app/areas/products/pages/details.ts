@@ -1,21 +1,25 @@
-import { JsonPipe } from '@angular/common';
-import { httpResource } from '@angular/common/http';
-import { Component, input } from '@angular/core';
+import { Component, input, Resource } from '@angular/core';
+import { ProductModel } from '../types';
 
 @Component({
   selector: 'app-products-details',
-  imports: [JsonPipe],
-  template: ` 
-  <p>Showing the details for product {{ id() }}</p> 
-  <pre>
-    {{ productResource.value() | json }}
-  </pre>
+  imports: [],
+  template: `
+    <div class="bg-base-100 rounded-md p-4 m-4">
+      @if (product().hasValue()) {
+        <p>{{ product().value().name }}</p>
+      }
+      @if (product().isLoading()) {
+        <div class="flex w-64 flex-col gap-4">
+          <div class="skeleton h-4 w-28"></div>
+          <div class="skeleton h-4 w-full"></div>
+          <div class="skeleton h-4 w-full"></div>
+        </div>
+      }
+    </div>
   `,
   styles: ``,
 })
 export class Details {
-  id = input<number>();
-
-  // first way - not so great, but non-experimental
-  productResource = httpResource(() => `/api/products/${this.id()}`);
+  product = input.required<Resource<ProductModel>>();
 }
