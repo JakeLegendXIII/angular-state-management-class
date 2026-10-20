@@ -1,5 +1,5 @@
 import { CurrencyPipe } from '@angular/common';
-import { Component, input, Resource } from '@angular/core';
+import { Component, computed, input, Resource, signal } from '@angular/core';
 import { RouterLinkWithHref, RouterOutlet } from '@angular/router';
 import { Product } from '../../../../mocks/data/products';
 import { httpResource } from '@angular/common/http';
@@ -10,6 +10,22 @@ import { ProductModel } from '../types';
   imports: [CurrencyPipe, RouterOutlet, RouterLinkWithHref],
   template: `
     <p>Products Index Page</p>
+    <div class="join">
+      <button
+        (click)="sortKey.set('name')"
+        [aria-disabled]="sortKey() === 'name'"
+        class="join-item btn"
+      >
+        Sort by Name
+      </button>
+      <button
+        (click)="sortKey.set('price')"
+        [aria-disabled]="sortKey() === 'price'"
+        class="join-item btn"
+      >
+        Sort by Price
+      </button>
+    </div>
     @if (productsResource.isLoading()) {
       <p>Getting your products...</p>
       <span class="loading loading-lg loading-ball"></span>
@@ -27,7 +43,7 @@ import { ProductModel } from '../types';
             </thead>
             <tbody>
               <!-- row 1 -->
-              @for (product of productsResource.value(); track product.id) {
+              @for (product of sortedProducts(); track product.id) {
                 <tr>
                   <th>{{ product.id }}</th>
                   <td>
@@ -61,4 +77,15 @@ import { ProductModel } from '../types';
 })
 export class Index {
   private readonly productsResource = httpResource<ProductModel[]>(() => '/api/products');
+
+  private readonly sortKey = signal<'price' | 'name'>('name');
+  sortedProducts = computed(() => {
+    const list = this.productsResource.value() ?? [];
+    // return list.toSorted((a, b) => (a.price === b.price ? 0 : a.price > b.price ? -1 : 1));
+    if (this.sortKey() === 'name') {
+      return list.toSorted((a, b) => a.name.localeCompare(b.name));
+    } else {
+      return list.toSorted((a, b) => (a.price === b.price ? 0 : a.price > b.price ? -1 : 1));
+    }
+  });
 }

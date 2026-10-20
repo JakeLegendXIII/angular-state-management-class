@@ -1,9 +1,10 @@
 import { CurrencyPipe } from '@angular/common';
 import { httpResource } from '@angular/common/http';
-import { Component, inject, input } from '@angular/core';
+import { Component, debounced, inject, input } from '@angular/core';
 import { Router } from '@angular/router';
 import { Collapse } from '../../shared/widgets/collapse';
 import { withPreviousValue } from '../../shared/utils/with-previous-value';
+
 type Product = {
   id: string;
   name: string;
@@ -82,8 +83,11 @@ export class With {
   // httpResource is *read only* and the primary tool for getting outside API data.
   // really. I mean it. Don't use rxjs if you just need a list of things.
   // spoiler: it *is* using rxjs, but hiding it.
+
+  private readonly maxPriceDebounced = debounced(this.maxPrice, 500);
+
   _productsResource = httpResource<Product[]>(() => {
-    const maxPrice = this.maxPrice();
+    const maxPrice = this.maxPriceDebounced.value();
     return {
       url: '/api/products',
       params: maxPrice === undefined ? undefined : { 'max-price': maxPrice },
