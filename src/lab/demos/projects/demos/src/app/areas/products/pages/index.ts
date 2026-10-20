@@ -1,6 +1,6 @@
 import { CurrencyPipe } from '@angular/common';
 import { httpResource } from '@angular/common/http';
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, input, signal } from '@angular/core';
 import { RouterLinkWithHref, RouterOutlet } from '@angular/router';
 import { ProductModel } from '../types';
 
@@ -10,20 +10,11 @@ import { ProductModel } from '../types';
   template: `
     <p>Products Index Page</p>
     <div class="join">
-      <button
-        (click)="sortKey.set('name')"
-        [aria-disabled]="sortKey() === 'name'"
-        class="join-item btn"
-      >
-        Sort by Name
-      </button>
-      <button
-        (click)="sortKey.set('price')"
-        [aria-disabled]="sortKey() === 'price'"
-        class="join-item btn"
-      >
-        Sort by Price
-      </button>
+      @if (sortKey() === 'price') {
+        <a [routerLink]="['.', { sortKey: 'name' }]" class="join-item btn"> Sort by Name </a>
+      } @else {
+        <a [routerLink]="['.', { sortKey: 'price' }]" class="join-item btn"> Sort by Price </a>
+      }
     </div>
     @if (productsResource.isLoading()) {
       <p>Getting your products...</p>
@@ -77,7 +68,7 @@ import { ProductModel } from '../types';
 export class Index {
   private readonly productsResource = httpResource<ProductModel[]>(() => '/api/products');
   // list = input<HttpResourceRef<ProductModel[]>>();
-  private readonly sortKey = signal<'price' | 'name'>('name');
+  sortKey = input<'price' | 'name'>('name');
   sortedProducts = computed(() => {
     const list = this.productsResource.value() ?? [];
     // return list.toSorted((a, b) => (a.price === b.price ? 0 : a.price > b.price ? -1 : 1));
