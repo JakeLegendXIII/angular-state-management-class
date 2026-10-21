@@ -20,6 +20,8 @@ export type SortOption = (typeof SortColumns)[number];
 
 // copy this somewhere handy
 export function assertNever(x: never): never {
+  // this will throw ONLY if this is being called from JavaScript, and not TypeScript
+  // TypeScript will not compile - it will type error - on anything 'never'
   throw new Error('You were not supposed to ever get here, yo');
 }
 export const ProductsStore = signalStore(
@@ -58,19 +60,15 @@ export const ProductsStore = signalStore(
     ),
     sortedProductList: computed(() => {
       const list = store.productsListResource.value() ?? [];
-      switch (store.sortOption()) {
+      const opt = store.sortOption();
+      switch (opt) {
         case 'name':
           return list.toSorted((a, b) => a.name.localeCompare(b.name));
-          break;
-
         case 'price':
           return list.toSorted((a, b) => (a.price === b.price ? 0 : a.price > b.price ? -1 : 1));
-          break;
 
-        default: {
-          return [];
-          // assertNever(store.sortOption());
-        }
+        default:
+          assertNever(opt);
       }
     }),
   })),
