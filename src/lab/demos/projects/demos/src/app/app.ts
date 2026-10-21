@@ -21,12 +21,26 @@ import { StellarOverlayComponent } from '@hypertheory-labs/stellar-ng-devtools';
 
         <div class="w-full h-12 bg-base-200 p-2">{{ r.getTitle() }}</div>
         <main class="p-2">
-          @for (err of errorStore.entities(); track err.id) {
+          @for (err of errorStore.combined(); track err.id) {
             <div class="toast toast-top">
-              <div class="alert alert-info">
-                <span>{{ err.message }}</span>
-                <button (click)="events.errorDismissed(err.id)" class="btn btn-sm">Ok</button>
-              </div>
+              @switch (err.kind) {
+                @case ('malformed') {
+                  <div class="alert alert-info">
+                    <div class="flex flex-col gap-2">
+                      <span>Malformed Response from Server{{ err.message }} at {{ err.url }}</span>
+                      <button (click)="events.errorDismissed(err.id)" class="btn btn-sm">Ok</button>
+                    </div>
+                  </div>
+                }
+                @case ('http') {
+                  <div class="alert alert-error">
+                    <div class="flex flex-col gap-2">
+                      <span>Bad Request: {{ err.message }} at {{ err.url }}</span>
+                      <button (click)="events.errorDismissed(err.id)" class="btn btn-sm">Ok</button>
+                    </div>
+                  </div>
+                }
+              }
             </div>
           }
           <router-outlet />

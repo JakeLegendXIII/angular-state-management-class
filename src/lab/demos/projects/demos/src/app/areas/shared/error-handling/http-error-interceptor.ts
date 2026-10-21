@@ -1,16 +1,20 @@
 // This will see EVERY http request (and response) in the application
 // if there is an error, it will dispatch an event
 
-import { HttpEventType, HttpHandlerFn, HttpRequest } from '@angular/common/http';
-import { tap } from 'rxjs';
+import { HttpErrorResponse, HttpHandlerFn, HttpRequest } from '@angular/common/http';
+import { injectDispatch } from '@ngrx/signals/events';
+import { catchError } from 'rxjs';
+import { httpErrorEvents } from './events';
 
 export function httpErrorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn) {
-  console.log(`Got a request to ${req.url} and it is a ${req.method} method`);
+  const dispatcher = injectDispatch(httpErrorEvents);
+  // up here is our opportunity to "look at" the outgoing http request.
+  // a common thing is to do logging, otel, stuff, or
+  // clone the request, add headers, etc (Authorization) and send that cloned version.
   return next(req).pipe(
-    tap((event) => {
-      if (event.type === HttpEventType.Response && event.status > 299) {
-        console.log(`Got a response ${event.status}`);
-      }
+    catchError((r: HttpErrorResponse) => {
+      dispatcher.httpError({ url: r.url || 'unknown', status: r.status });
+      throw r;
     }),
   );
 }
