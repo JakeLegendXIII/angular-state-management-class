@@ -20,6 +20,20 @@ export const handlers = [
   // --- the real API: Day 1's first real request, and MSW as a seam in front of it ---
   configurable(
     {
+      id: 'check-email',
+      label: 'Check Email',
+      method: 'GET',
+      path: `/api/check`,
+      returnsArray: false,
+    },
+    () => passthrough(),
+    {
+      isTaken: { label: 'Is Taken', resolve: () => HttpResponse.json({ available: false }) },
+      isAvailable: { label: 'Is Available', resolve: () => HttpResponse.json({ available: true }) },
+    },
+  ),
+  configurable(
+    {
       id: 'api.branches',
       label: 'Branches (real API)',
       method: 'GET',

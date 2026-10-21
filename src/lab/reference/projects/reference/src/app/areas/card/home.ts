@@ -1,6 +1,17 @@
 import { JsonPipe } from '@angular/common';
-import { Component, signal } from '@angular/core';
-import { form, FormField, FormRoot, required } from '@angular/forms/signals';
+import { Component, inject, signal } from '@angular/core';
+import {
+  applyEach,
+  email,
+  form,
+  FormField,
+  FormRoot,
+  required,
+  validateHttp,
+  validateStandardSchema,
+} from '@angular/forms/signals';
+import { zCardRequestModel } from '../shared/zod.gen';
+import { SseService } from './sse-service';
 
 type ContactItem = { kind: string; value: string };
 type LibraryCardRequest = {
@@ -14,7 +25,7 @@ type LibraryCardRequest = {
 
 @Component({
   selector: 'app-card-home',
-  imports: [FormRoot, FormField, JsonPipe],
+  imports: [FormRoot, FormField],
   template: `
     <form [formRoot]="cardForm" class="flex flex-col w-1/2 p-18">
       <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-xs border p-4">
@@ -53,28 +64,68 @@ type LibraryCardRequest = {
           <input type="text" class="input" [formField]="cardForm.contactMechanisms[i].value" />
         }
       </fieldset>
-      <button type="submit" class="btn btn-primary">Sign Up For Card</button>
+      <button [aria-disabled]="cardForm().invalid()" type="submit" class="btn btn-primary">
+        Sign Up For Card
+      </button>
     </form>
-    <pre>
-
-        {{ model() | json }}
-    </pre>
   `,
   styles: ``,
 })
 export class CardHome {
+  sseService = inject(SseService);
   model = signal<LibraryCardRequest>({
     name: {
       first: '',
       last: '',
     },
     primaryEmail: '',
-    contactMechanisms: [{ kind: 'email', value: '' }],
+    contactMechanisms: [],
   });
 
-  cardForm = form(this.model, (schema) => {
-    required(schema.name.first);
-  });
+  cardForm = form(
+    this.model,
+    (schema) => {
+      validateStandardSchema(schema, zCardRequestModel);
+      validateHttp(schema.primaryEmail, {
+        debounce: 500,
+        request: ({ value }) => {
+          const email = value();
+          return `/api/check/email=${email}`;
+        },
+        onSuccess: (response: { isGood: boolean }) => {
+          return response.isGood ? null : { kind: 'email-used', message: 'Email is already used' };
+        },
+
+        onError: (e) => {
+          console.log(e);
+        },
+      });
+      email(schema.primaryEmail, { message: 'We need a way to contact you' });
+      applyEach(schema.contactMechanisms, (m) => {
+        email(m.value);
+        required(m.value);
+      });
+    },
+    {
+      submission: {
+        action: async (form) => {
+          const val = form().value();
+          const response = await fetch('http://localhost:5261/library-card-requests', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(val),
+          });
+          if (response.ok) {
+            const rb = (await response.json()) as { id: string; status: string };
+            alert(`Got your request. The id is ${rb.id} and the status is ${rb.status}`);
+            this.sseService.connect(rb.id);
+          }
+        },
+      },
+    },
+  );
 
   addPhone() {
     const newItem: ContactItem = { kind: 'phone', value: '' };
